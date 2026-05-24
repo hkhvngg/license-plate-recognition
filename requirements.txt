@@ -1,0 +1,34 @@
+# ============================================
+# Hệ thống nhận diện biển số xe Việt Nam
+# Requirements
+# ============================================
+
+# Framework giao diện web
+streamlit>=1.28.0
+
+# YOLOv8 - phát hiện biển số
+ultralytics>=8.0.0
+lap>=0.4
+
+# Xử lý ảnh
+opencv-python-headless>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
+imageio-ffmpeg>=0.4.9
+
+# OCR - đọc ký tự biển số
+easyocr>=1.7.0
+
+# Real-ESRGAN - tăng độ nét (optional, fallback sang OpenCV nếu lỗi)
+# Cài thủ công nếu cần: pip install realesrgan basicsr
+# realesrgan
+# basicsr
+
+# Tiện ích (Đã cài đặt bản CUDA cho GPU ở ổ D, không tự động ghi đè từ PyPI)
+# torch>=2.0.0
+# torchvision>=0.15.0
+
+# Các thư viện phục vụ module đánh giá (evaluation)
+tqdm
+pandas
+Levenshtein
