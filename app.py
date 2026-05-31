@@ -272,6 +272,157 @@ st.markdown("""
         height: auto !important;
         object-fit: contain !important;
     }
+
+    /* === Balanced layout refinement === */
+    [data-testid="stAppViewContainer"] {
+        background: #0d1117;
+    }
+    .main .block-container {
+        max-width: 1720px;
+        padding-top: 1.25rem;
+        padding-bottom: 2.5rem;
+    }
+    .main-header {
+        background: #111827;
+        border: 1px solid #263244;
+        border-radius: 12px;
+        box-shadow: none;
+        padding: 1.35rem 1.75rem;
+        margin-bottom: 1rem;
+        text-align: left;
+    }
+    .main-header h1 {
+        font-size: 1.65rem;
+        line-height: 1.2;
+        letter-spacing: 0;
+        color: #f8fafc;
+        background: none;
+        -webkit-text-fill-color: currentColor;
+    }
+    .main-header p {
+        margin-top: 0.35rem;
+        color: #94a3b8;
+        font-size: 0.9rem;
+    }
+    h3 {
+        margin-top: 0.55rem !important;
+        margin-bottom: 0.75rem !important;
+        font-size: 1.25rem !important;
+        letter-spacing: 0 !important;
+    }
+    .custom-divider {
+        margin: 1.05rem 0;
+        background: #253044;
+    }
+    .metric-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        align-items: stretch;
+    }
+    .metric-item {
+        min-height: 74px;
+        border-radius: 8px;
+        padding: 0.85rem 0.75rem;
+        background: #151a23;
+        border: 1px solid #283244;
+        box-shadow: none;
+    }
+    .metric-value {
+        font-size: 1.25rem;
+        line-height: 1.15;
+        color: #7aa2ff;
+    }
+    .metric-label {
+        font-size: 0.72rem;
+        line-height: 1.25;
+        color: #94a3b8;
+        letter-spacing: 0.35px;
+    }
+    .result-card {
+        background: #111827;
+        border: 1px solid #263244;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 0.75rem 0 1rem;
+        box-shadow: none;
+    }
+    .result-card:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    .plate-badge {
+        border-radius: 8px;
+        padding: 0.55rem 1.25rem;
+        font-size: 1.35rem;
+        letter-spacing: 2px;
+        box-shadow: none;
+    }
+    .stFileUploader > div > div {
+        border: 1px dashed #40516b !important;
+        border-radius: 10px !important;
+        background: #111827 !important;
+    }
+    .stButton > button {
+        border-radius: 8px !important;
+        min-height: 42px !important;
+        box-shadow: none !important;
+        letter-spacing: 0 !important;
+    }
+    .stButton > button:hover {
+        transform: none !important;
+    }
+    [data-testid="stImage"] {
+        background: #0f141d;
+        border: 1px solid #263244;
+        border-radius: 10px;
+        padding: 8px;
+    }
+    [data-testid="stImage"] img, .stImage img {
+        border-radius: 6px;
+        max-height: 560px;
+        object-fit: contain !important;
+    }
+    [data-testid="stVideo"] {
+        background: #0f141d;
+        border: 1px solid #263244;
+        border-radius: 10px;
+        padding: 8px;
+    }
+    .result-table-wrap {
+        overflow-x: auto;
+        border: 1px solid #263244;
+        border-radius: 8px;
+        margin: 0.75rem 0;
+    }
+    .result-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: auto;
+        background: #0f141d;
+    }
+    .result-table th,
+    .result-table td {
+        border-bottom: 1px solid #263244;
+        padding: 0.62rem 0.75rem;
+        text-align: left;
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+    .result-table th {
+        background: #1b2540;
+        color: #dbe7ff;
+        font-weight: 700;
+    }
+    .result-table td {
+        color: #e5e7eb;
+    }
+    .result-table tr:last-child td {
+        border-bottom: 0;
+    }
+    .stAlert {
+        border-radius: 8px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -309,6 +460,28 @@ def get_confidence_badge(confidence):
     else:
         css_class = "confidence-low"
     return f'<span class="{css_class}">{pct:.1f}%</span>'
+
+
+def sync_cuda_if_available():
+    """Synchronize CUDA before timing GPU work so elapsed time is accurate."""
+    try:
+        import torch
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+    except Exception:
+        pass
+
+
+def start_timer(sync_gpu=False):
+    if sync_gpu:
+        sync_cuda_if_available()
+    return time.perf_counter()
+
+
+def stop_timer(start_time, sync_gpu=False):
+    if sync_gpu:
+        sync_cuda_if_available()
+    return time.perf_counter() - start_time
 
 
 DETECT_LOCK_CONFIDENCE = 0.55
@@ -456,31 +629,16 @@ def render_results_table(rows):
 
     st.markdown(
         f"""
-        <div style="overflow-x:auto;">
-            <table style="width:100%; border-collapse:collapse; margin:0.75rem 0;">
+        <div class="result-table-wrap">
+            <table class="result-table">
                 <thead>
-                    <tr style="background:rgba(102,126,234,0.18);">{header}</tr>
+                    <tr>{header}</tr>
                 </thead>
                 <tbody>
                     {''.join(body_rows)}
                 </tbody>
             </table>
         </div>
-        <style>
-            table th, table td {{
-                border: 1px solid rgba(255,255,255,0.12);
-                padding: 0.55rem 0.7rem;
-                text-align: left;
-                font-size: 0.9rem;
-            }}
-            table th {{
-                color: #cfd6ff;
-                font-weight: 700;
-            }}
-            table td {{
-                color: rgba(255,255,255,0.82);
-            }}
-        </style>
         """,
         unsafe_allow_html=True
     )
@@ -986,7 +1144,7 @@ def process_video_file(uploaded_video, ocr_interval):
     ocr_reads = 0
     duplicate_reads = 0
     unique_results = {}
-    started_at = time.time()
+    started_at = start_timer(sync_gpu=True)
 
     try:
         while True:
@@ -1133,7 +1291,7 @@ def process_video_file(uploaded_video, ocr_interval):
     except OSError:
         pass
 
-    elapsed = time.time() - started_at
+    elapsed = stop_timer(started_at, sync_gpu=True)
     progress_bar.progress(98, text="Đang tối ưu video để phát trên web...")
     final_output_path, browser_ready, video_note = transcode_video_for_browser(output_path)
     if final_output_path != output_path:
@@ -1257,20 +1415,23 @@ if uploaded_file is not None and recognize_button:
             st.error(f"❌ Lỗi xử lý video: {str(e)}")
             st.stop()
 
-        st.markdown("### 🎞️ Video gốc")
-        if video_result["source_web_path"]:
-            show_video_file(video_result["source_web_path"])
-            if video_result["source_browser_ready"]:
-                st.success(video_result["source_video_note"])
-            else:
-                st.warning(video_result["source_video_note"])
+        video_col_original, video_col_result = st.columns(2)
+        with video_col_original:
+            st.markdown("### 🎞️ Video gốc")
+            if video_result["source_web_path"]:
+                show_video_file(video_result["source_web_path"])
+                if video_result["source_browser_ready"]:
+                    st.success(video_result["source_video_note"])
+                else:
+                    st.warning(video_result["source_video_note"])
 
-        st.markdown("### 🎯 Video kết quả")
-        show_video_file(video_result["output_path"])
-        if video_result["browser_ready"]:
-            st.success(video_result["video_note"])
-        else:
-            st.warning(video_result["video_note"])
+        with video_col_result:
+            st.markdown("### 🎯 Video kết quả")
+            show_video_file(video_result["output_path"])
+            if video_result["browser_ready"]:
+                st.success(video_result["video_note"])
+            else:
+                st.warning(video_result["video_note"])
 
         st.markdown(f"""
         <div class="metric-row">
@@ -1341,12 +1502,6 @@ if uploaded_file is not None and recognize_button:
         st.error(f"❌ Không thể đọc ảnh: {str(e)}")
         st.stop()
 
-    # Hiển thị ảnh gốc
-    st.markdown("### 📷 Ảnh gốc")
-    st.image(bgr_to_rgb(image_bgr), use_container_width=True)
-
-    st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
-
     # === Progress bar ===
     progress_bar = st.progress(0, text="Đang khởi tạo...")
 
@@ -1368,9 +1523,9 @@ if uploaded_file is not None and recognize_button:
     # === Bước 2: Detect biển số ===
     progress_bar.progress(30, text="🔍 Đang phát hiện biển số xe...")
     try:
-        start_time = time.time()
+        start_time = start_timer(sync_gpu=True)
         detections = detect_plates(yolo_model, image_bgr, confidence=yolo_confidence)
-        detect_time = time.time() - start_time
+        detect_time = stop_timer(start_time, sync_gpu=True)
     except Exception as e:
         st.error(f"❌ Lỗi detection: {str(e)}")
         st.stop()
@@ -1394,7 +1549,13 @@ if uploaded_file is not None and recognize_button:
     annotated_image = draw_bounding_boxes(image_bgr, detections)
 
     st.markdown(f"### 🎯 Kết quả Detection — Tìm thấy **{len(detections)}** biển số")
-    st.image(bgr_to_rgb(annotated_image), use_container_width=True)
+    col_original, col_detected = st.columns(2)
+    with col_original:
+        st.markdown("**📷 Ảnh gốc**")
+        st.image(bgr_to_rgb(image_bgr), use_container_width=True)
+    with col_detected:
+        st.markdown("**🎯 Sau detect**")
+        st.image(bgr_to_rgb(annotated_image), use_container_width=True)
 
     # Metrics tổng quan
     st.markdown(f"""
@@ -1415,6 +1576,8 @@ if uploaded_file is not None and recognize_button:
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
+
+    post_detect_start_time = start_timer(sync_gpu=True)
 
     # === Bước 4: Load OCR ===
     progress_bar.progress(55, text="🔤 Đang load EasyOCR...")
@@ -1533,11 +1696,21 @@ if uploaded_file is not None and recognize_button:
             "OCR Conf": f"{ocr_confidence:.1%}",
         })
 
+    post_detect_time = stop_timer(post_detect_start_time, sync_gpu=True)
+
     # === Hoàn tất ===
     progress_bar.progress(100, text="✅ Hoàn tất nhận diện!")
 
     # === Lưu kết quả (optional) ===
     st.markdown("### 📊 Tổng kết")
+    st.markdown(f"""
+    <div class="metric-row">
+        <div class="metric-item">
+            <div class="metric-value">{post_detect_time:.2f}s</div>
+            <div class="metric-label">Sau detect đến kết quả</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     render_results_table(results_summary)
 
 elif uploaded_file is not None:
